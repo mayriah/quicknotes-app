@@ -2,6 +2,9 @@
 // QuickNotes - Main Application Logic
 // ==========================================================================
 
+// Storage Key
+const STORAGE_KEY = 'quicknotes_notes';
+
 // DOM Elements Selection using querySelector
 const noteForm = document.querySelector('#note-form');
 const noteInput = document.querySelector('#note-input');
@@ -9,9 +12,35 @@ const noteCategory = document.querySelector('#note-category');
 const notesList = document.querySelector('#notes-list');
 const errorMessage = document.querySelector('#error-message');
 const noteCount = document.querySelector('#note-count');
+const searchInput = document.querySelector('#search-input');
+const clearAllBtn = document.querySelector('#clear-all-btn');
 
-// In-memory notes state
-let notes = [];
+/**
+ * Load notes from localStorage
+ */
+function loadNotesFromStorage() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        console.error('Error loading notes from localStorage:', error);
+        return [];
+    }
+}
+
+/**
+ * Save notes to localStorage
+ */
+function saveNotesToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    } catch (error) {
+        console.error('Error saving notes to localStorage:', error);
+    }
+}
+
+// In-memory notes state initialized from localStorage
+let notes = loadNotesFromStorage();
 
 /**
  * Format timestamp into human-readable date and time string
@@ -48,17 +77,28 @@ function updateNoteCount(count = notes.length) {
  */
 function deleteNote(id) {
     notes = notes.filter(note => note.id !== id);
-    render();
+    saveNotesToStorage();
+    renderFiltered();
 }
 
 /**
  * Render notes list using DOM methods (createElement and textContent)
  * Strictly avoids innerHTML for user text to ensure security
  */
-function render(notesToRender = notes) {
+function render(notesToRender = notes, isSearching = false) {
     // Clear list safely
     while (notesList.firstChild) {
         notesList.removeChild(notesList.firstChild);
+    }
+
+    // If searching and no results found
+    if (isSearching && notesToRender.length === 0) {
+        const noResultsItem = document.createElement('li');
+        noResultsItem.className = 'no-results-msg';
+        noResultsItem.textContent = 'No notes match your search.';
+        notesList.appendChild(noResultsItem);
+        updateNoteCount(notes.length);
+        return;
     }
 
     notesToRender.forEach(note => {
@@ -107,6 +147,19 @@ function render(notesToRender = notes) {
 }
 
 /**
+ * Filter and render notes based on current search input
+ */
+function renderFiltered() {
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (query === '') {
+        render(notes, false);
+    } else {
+        const filtered = notes.filter(note => note.text.toLowerCase().includes(query));
+        render(filtered, true);
+    }
+}
+
+/**
  * Handle form submission with input validation
  */
 function handleAddNote(event) {
@@ -140,11 +193,36 @@ function handleAddNote(event) {
     };
 
     notes.push(newNote);
-    render();
+    saveNotesToStorage();
+
+    // Clear search filter so the newly added note is visible
+    if (searchInput) {
+        searchInput.value = '';
+    }
+
+    render(notes, false);
 
     // Clear input after adding
     noteInput.value = '';
     noteInput.focus();
+}
+
+/**
+ * Bonus: Clear all notes with confirmation prompt
+ */
+function handleClearAll() {
+    if (notes.length === 0) {
+        return;
+    }
+
+    if (confirm('Delete all notes?')) {
+        notes = [];
+        saveNotesToStorage();
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        render(notes, false);
+    }
 }
 
 // Clear error message when user starts typing again
@@ -154,8 +232,18 @@ noteInput.addEventListener('input', () => {
     }
 });
 
-// Event Listeners
+// Search input event listener
+if (searchInput) {
+    searchInput.addEventListener('input', renderFiltered);
+}
+
+// Clear all button event listener (Bonus)
+if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', handleClearAll);
+}
+
+// Form submit event listener
 noteForm.addEventListener('submit', handleAddNote);
 
-// Initial render & count update
-render();
+// Initial render from localStorage on page load
+renderFiltered();
