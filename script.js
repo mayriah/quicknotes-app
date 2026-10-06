@@ -7,6 +7,8 @@ const noteForm = document.querySelector('#note-form');
 const noteInput = document.querySelector('#note-input');
 const noteCategory = document.querySelector('#note-category');
 const notesList = document.querySelector('#notes-list');
+const errorMessage = document.querySelector('#error-message');
+const noteCount = document.querySelector('#note-count');
 
 // In-memory notes state
 let notes = [];
@@ -23,6 +25,30 @@ function getFormattedDate() {
         hour: 'numeric',
         minute: '2-digit'
     });
+}
+
+/**
+ * Update the note count message according to rules:
+ * - 0 notes: "You have no notes yet."
+ * - 1 note: "You have 1 note."
+ * - N notes: "You have N notes."
+ */
+function updateNoteCount(count = notes.length) {
+    if (count === 0) {
+        noteCount.textContent = 'You have no notes yet.';
+    } else if (count === 1) {
+        noteCount.textContent = 'You have 1 note.';
+    } else {
+        noteCount.textContent = `You have ${count} notes.`;
+    }
+}
+
+/**
+ * Delete a specific note by ID
+ */
+function deleteNote(id) {
+    notes = notes.filter(note => note.id !== id);
+    render();
 }
 
 /**
@@ -54,6 +80,7 @@ function render(notesToRender = notes) {
         deleteBtn.className = 'delete-btn';
         deleteBtn.textContent = 'Delete';
         deleteBtn.setAttribute('aria-label', `Delete note: ${note.text.slice(0, 20)}`);
+        deleteBtn.addEventListener('click', () => deleteNote(note.id));
 
         headerDiv.appendChild(categoryBadge);
         headerDiv.appendChild(deleteBtn);
@@ -75,21 +102,40 @@ function render(notesToRender = notes) {
 
         notesList.appendChild(li);
     });
+
+    updateNoteCount(notes.length);
 }
 
 /**
- * Handle form submission to add a note
+ * Handle form submission with input validation
  */
 function handleAddNote(event) {
     event.preventDefault();
 
-    const text = noteInput.value.trim();
-    const category = noteCategory.value;
+    const rawText = noteInput.value;
+    const trimmedText = rawText.trim();
+
+    // Validation: Empty or only spaces
+    if (trimmedText === '') {
+        errorMessage.textContent = 'Please type a note first.';
+        noteInput.focus();
+        return;
+    }
+
+    // Validation: Over 200 characters
+    if (trimmedText.length > 200) {
+        errorMessage.textContent = 'Notes must be 200 characters or fewer.';
+        noteInput.focus();
+        return;
+    }
+
+    // Clear error message on valid input
+    errorMessage.textContent = '';
 
     const newNote = {
         id: Date.now().toString(),
-        text: text,
-        category: category,
+        text: trimmedText,
+        category: noteCategory.value,
         createdAt: getFormattedDate()
     };
 
@@ -101,8 +147,15 @@ function handleAddNote(event) {
     noteInput.focus();
 }
 
+// Clear error message when user starts typing again
+noteInput.addEventListener('input', () => {
+    if (errorMessage.textContent) {
+        errorMessage.textContent = '';
+    }
+});
+
 // Event Listeners
 noteForm.addEventListener('submit', handleAddNote);
 
-// Initial render
+// Initial render & count update
 render();
