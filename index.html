@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickNotes - Fast &amp; Simple Note Taking</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>QuickNotes</h1>
+            <p class="tagline">Organize your thoughts seamlessly</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Section 1: Add a note -->
+        <section class="notes-card-section" aria-labelledby="add-note-heading">
+            <h2 id="add-note-heading">Add a note</h2>
+            <form id="note-form" novalidate>
+                <div class="form-field flex-grow">
+                    <label for="note-input">Note</label>
+                    <input 
+                        type="text" 
+                        id="note-input" 
+                        placeholder="Write your note here (up to 200 characters)..." 
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="note-category">Category</label>
+                    <select id="note-category">
+                        <option value="Personal">Personal</option>
+                        <option value="Work">Work</option>
+                        <option value="Study">Study</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="add-note-btn">Add Note</button>
+                </div>
+            </form>
+            <p id="error-message" aria-live="polite"></p>
+        </section>
+
+        <!-- Section 2: Your notes -->
+        <section class="notes-card-section" aria-labelledby="your-notes-heading">
+            <div class="notes-section-header">
+                <h2 id="your-notes-heading">Your notes</h2>
+                <button type="button" id="clear-all-btn" class="clear-btn" title="Delete all notes">Clear all</button>
+            </div>
+
+            <div class="search-container">
+                <label for="search-input" class="sr-only">Search notes</label>
+                <input 
+                    type="search" 
+                    id="search-input" 
+                    placeholder="Search notes..." 
+                    autocomplete="off"
+                >
+            </div>
+
+            <p id="note-count">You have no notes yet.</p>
+            <ul id="notes-list" aria-live="polite"></ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 QuickNotes &bull; All rights reserved.</p>
+    </footer>
+</body>
+</html>
