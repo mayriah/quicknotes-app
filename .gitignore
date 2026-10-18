@@ -1,0 +1,4 @@
+# Ignore nested Project 1 folder
+quicknotes-app/
+.DS_Store
+Thumbs.db

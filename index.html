@@ -1,75 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickNotes - Fast &amp; Simple Note Taking</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickNotes - API Client &amp; System Design</title>
+  <meta name="description" content="QuickNotes REST API client demonstrating GET, POST, and DELETE requests with complete loading, success, and error state handling.">
+  <link rel="stylesheet" href="style.css">
+  <script src="api.js" defer></script>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <h1>QuickNotes</h1>
-            <p class="tagline">Organize your thoughts seamlessly</p>
+  <header>
+    <div class="header-container">
+      <div class="brand">
+        <span class="brand-badge">Day 7 Project</span>
+        <h1>QuickNotes API Client</h1>
+        <p class="tagline">Interactive REST API client connecting to JSONPlaceholder with full lifecycle states.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Section 1: Actions & Status -->
+    <section class="card control-section" aria-labelledby="controls-heading">
+      <div class="section-header">
+        <h2 id="controls-heading">API Controls &amp; Status</h2>
+        <span class="endpoint-indicator">Target: <code>/posts</code></span>
+      </div>
+
+      <div class="actions-bar">
+        <button type="button" id="load-btn" class="btn btn-primary">
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+          </svg>
+          Load Notes
+        </button>
+      </div>
+
+      <p id="status" class="status-box" role="status" aria-live="polite">Ready. Click "Load Notes" to fetch notes from the server.</p>
+    </section>
+
+    <!-- Section 2: Create Note Form -->
+    <section class="card form-section" aria-labelledby="form-heading">
+      <div class="section-header">
+        <h2 id="form-heading">Create a New Note</h2>
+        <span class="badge-method">POST</span>
+      </div>
+
+      <form id="note-form" novalidate>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="title-input">Note Title <span class="required" aria-hidden="true">*</span></label>
+            <span id="char-counter" class="char-counter" aria-live="polite">0 / 100</span>
+          </div>
+          <input
+            type="text"
+            id="title-input"
+            name="title"
+            placeholder="e.g. Review system architecture diagrams"
+            maxlength="100"
+            required
+            autocomplete="off"
+            aria-describedby="title-hint"
+          >
+          <small id="title-hint" class="input-hint">Required. Maximum 100 characters.</small>
         </div>
-    </header>
 
-    <main>
-        <!-- Section 1: Add a note -->
-        <section class="notes-card-section" aria-labelledby="add-note-heading">
-            <h2 id="add-note-heading">Add a note</h2>
-            <form id="note-form" novalidate>
-                <div class="form-field flex-grow">
-                    <label for="note-input">Note</label>
-                    <input 
-                        type="text" 
-                        id="note-input" 
-                        placeholder="Write your note here (up to 200 characters)..." 
-                        autocomplete="off"
-                    >
-                </div>
+        <div class="form-group">
+          <label for="body-input">Note Body <span class="optional">(Optional)</span></label>
+          <textarea
+            id="body-input"
+            name="body"
+            rows="3"
+            placeholder="Enter note content, meeting summaries, or action items..."
+          ></textarea>
+        </div>
 
-                <div class="form-field">
-                    <label for="note-category">Category</label>
-                    <select id="note-category">
-                        <option value="Personal">Personal</option>
-                        <option value="Work">Work</option>
-                        <option value="Study">Study</option>
-                    </select>
-                </div>
+        <div class="form-actions">
+          <button type="submit" id="submit-btn" class="btn btn-accent">
+            <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add Note
+          </button>
+        </div>
+      </form>
+    </section>
 
-                <div class="form-actions">
-                    <button type="submit" id="add-note-btn">Add Note</button>
-                </div>
-            </form>
-            <p id="error-message" aria-live="polite"></p>
-        </section>
+    <!-- Section 3: Notes List Display -->
+    <section class="card list-section" aria-labelledby="list-heading">
+      <div class="section-header">
+        <div class="list-heading-wrap">
+          <h2 id="list-heading">Notes List</h2>
+          <span id="notes-counter" class="notes-counter">0 notes</span>
+        </div>
+      </div>
 
-        <!-- Section 2: Your notes -->
-        <section class="notes-card-section" aria-labelledby="your-notes-heading">
-            <div class="notes-section-header">
-                <h2 id="your-notes-heading">Your notes</h2>
-                <button type="button" id="clear-all-btn" class="clear-btn" title="Delete all notes">Clear all</button>
-            </div>
+      <ul id="notes-list" class="notes-list" aria-live="polite"></ul>
+    </section>
+  </main>
 
-            <div class="search-container">
-                <label for="search-input" class="sr-only">Search notes</label>
-                <input 
-                    type="search" 
-                    id="search-input" 
-                    placeholder="Search notes..." 
-                    autocomplete="off"
-                >
-            </div>
-
-            <p id="note-count">You have no notes yet.</p>
-            <ul id="notes-list" aria-live="polite"></ul>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2026 QuickNotes &bull; All rights reserved.</p>
-    </footer>
+  <footer>
+    <div class="footer-container">
+      <p>QuickNotes System Design &mdash; Day 7 Lab &bull; Documentation: 
+        <a href="docs/api-design.md">API Design</a> | 
+        <a href="docs/data-model.md">Data Model</a> | 
+        <a href="docs/architecture.md">Architecture</a>
+      </p>
+    </div>
+  </footer>
 </body>
 </html>
