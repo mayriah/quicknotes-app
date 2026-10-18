@@ -1,42 +1,90 @@
-# QuickNotes
+# QuickNotes: System Design & REST API Client
 
-QuickNotes is a lightweight, responsive note-taking web application designed to help users quickly capture, categorize, and organize everyday thoughts, tasks, and ideas with real-time feedback and seamless local persistence. Built entirely with vanilla HTML5, CSS3, and JavaScript, the app prioritizes accessibility, safety against cross-site scripting (XSS), and a clean card-based interface that works flawlessly across desktops and mobile devices.
+A production-grade system design specification and working front-end REST API client designed to transition **QuickNotes** from a browser-only prototype into a scalable online cloud service supporting 1,000,000 active users.
 
-## Features
+---
 
-- **Semantic HTML5 Architecture:** Clean document outline built with semantic tags (`<header>`, `<main>`, `<section>`, `<footer>`, `<form>`, `<label>`, `<select>`) and accessible ARIA attributes.
-- **Card-Based Categorization:** Visual distinction for each note category with custom color accents:
-  - **Personal:** Teal border and badge
-  - **Work:** Dark red border and badge
-  - **Study:** Blue border and badge
-- **Real-Time Validation:** Immediate feedback preventing empty notes or notes exceeding the 200-character limit, with designated error messages.
-- **Dynamic Note Counter:** Clear, reactive count indicator accurately reporting zero, single, or multiple notes (`You have no notes yet.`, `You have 1 note.`, or `You have N notes.`).
-- **Live Search Filtering:** Real-time, case-insensitive keyword search with an informative fallback state (`No notes match your search.`) when no matching notes exist.
-- **Persistent Storage:** All notes are automatically serialized and saved to `localStorage`, preserving your notes across browser refreshes and sessions.
-- **Responsive Flexbox Design:** Adaptive layout with an automated media query breakpoint at 600px, stacking form inputs vertically on mobile screens.
-- **Bonus Feature - Bulk Reset:** A "Clear all" button with native browser confirmation (`confirm("Delete all notes?")`) to safely wipe all notes in a single click.
+## Project Overview
 
-## How to Run the Project Locally
+QuickNotes is transitioning from a standalone browser application to an enterprise-grade cloud service. This project delivers two critical engineering components:
+1. **Interactive REST API Client:** A resilient front-end client built with semantic HTML5, CSS3, and vanilla JavaScript that interacts with a REST API (using [JSONPlaceholder](https://jsonplaceholder.typicode.com/) for mock CRUD verification). It features asynchronous lifecycle state handling (`loading`, `success`, `error`, and `empty` states), input validation, and XSS prevention.
+2. **System Design & Architecture Documentation:** Complete architectural and database specifications ready for backend engineering teams to construct the production service, covering REST API design, normalized relational data modeling, capacity planning, and high-availability architecture.
 
-No frameworks, compilers, or build tools are required. You can run the application directly in any modern browser:
+---
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/mayriah/quicknotes-app.git
-   cd quicknotes-app
-   ```
+## Repository Structure
 
-2. **Open the project:**
-   - Double-click `index.html` in your file explorer to open it directly in your default browser, **OR**
-   - Serve the directory using the VS Code Live Server extension, **OR**
-   - Serve via Python's built-in HTTP server:
-     ```bash
-     python -m http.server 8000
-     ```
-     Then navigate to `http://localhost:8000` in your web browser.
+```
+quicknotes-app/
+│
+├── index.html              # HTML5 skeleton with form, buttons, and status box
+├── style.css               # Modern design system with distinct state styling
+├── api.js                  # Asynchronous REST client (GET, POST, DELETE)
+│
+├── docs/                   # System Design Specifications
+│   ├── api-design.md       # REST API endpoint specifications & RFC 7807 errors
+│   ├── data-model.md       # Relational schema (3NF), DDL, queries, & indexes
+│   └── architecture.md     # 1M user load estimates, architecture diagram, & SPOFs
+│
+└── README.md               # Project documentation and learning summary
+```
+
+---
+
+## How to Run the API Client
+
+The API client runs in any modern web browser without requiring external build tools or runtime compilers.
+
+### Option 1: Direct Browser Launch
+Open `index.html` directly in your browser:
+- On Windows: Double-click `index.html` or open PowerShell and run:
+  ```powershell
+  Start-Process index.html
+  ```
+
+### Option 2: Local HTTP Server (Recommended)
+Running through a local web server avoids browser file-origin restrictions:
+- Using Python:
+  ```bash
+  python -m http.server 8000
+  ```
+- Using Node.js:
+  ```bash
+  npx serve .
+  ```
+- Using VS Code: Right-click `index.html` and click **"Open with Live Server"**.
+
+Visit `http://localhost:8000` to interact with the API client.
+
+### Using the Client Features:
+- **Load Notes (GET):** Click **"Load Notes"** to fetch 10 notes from `https://jsonplaceholder.typicode.com/posts?_limit=10`. The status message updates to `"Loading notes..."` with buttons disabled, then confirms `"Loaded 10 notes from the server."`
+- **Create Note (POST):** Fill in the title (mandatory, maximum 100 characters) and optional body, then click **"Add Note"**. The client validates your input, sends a POST request, adds the new note to the top of the feed, resets the form, and displays the status code and assigned note ID (`"Note created (status 201, id 101)"`).
+- **Delete Note (DELETE):** Click the **"Delete"** button on any note card. An animated removal occurs upon receiving a successful delete status response. If all notes are removed, a friendly empty-state placeholder appears.
+
+---
+
+## System Design Documentation Links
+
+The system design for the backend production platform is detailed in three comprehensive documents:
+
+1. 📄 **[API Design Specification](docs/api-design.md):**  
+   Details 8 production REST endpoints (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `AUTH`), query parameters for pagination and tag filtering, request/response JSON payloads, and RFC 7807-compliant error structures for `400`, `401`, `403`, `404`, and `500`.
+
+2. 🗄️ **[Database Data Model Specification](docs/data-model.md):**  
+   Defines the normalized relational schema across `users`, `notes`, `tags`, and `note_tags`. Includes PostgreSQL DDL statements with foreign key cascading, cardinality diagrams (1:N, M:N), complex analytical queries with `JOIN` operations, B-tree performance indexing justifications, and an architectural justification for choosing SQL over NoSQL.
+
+3. 🏗️ **[System Architecture Specification](docs/architecture.md):**  
+   Outlines functional and non-functional requirements, rigorous capacity planning calculations for 1,000,000 users (read/write throughput and annual storage), high-level component diagrams, step-by-step request flow walks for `GET /notes` and `POST /notes`, and trade-off analyses with single-point-of-failure (SPOF) elimination strategies.
+
+---
 
 ## What I Learned
 
-1. **Safe DOM Manipulation without `innerHTML`:** Creating dynamic list items strictly using `document.createElement()` and `textContent` ensures complete immunity against script injection and XSS vulnerabilities when displaying untrusted user input.
-2. **Synchronizing State with `localStorage`:** Implementing consistent serializing and parsing routines with `JSON.stringify` and `JSON.parse` alongside event-driven state updates to maintain parity between memory and disk.
-3. **Responsive Mobile-First Form Workflows:** Leveraging CSS Flexbox along with media queries (`@media (max-width: 600px)`) to provide accessible and clean UI transitions from desktop multi-column inputs to mobile stacked touch controls.
+1. **Robust Asynchronous State Management and Client Defensive Design:**  
+   Building the API client emphasized the necessity of managing UI states across the entire lifecycle of an HTTP request. By implementing explicit `loading`, `success`, `error`, and `empty` states and disabling interactive buttons while promises resolve, we prevent accidental duplicate submissions and race conditions. Furthermore, strictly utilizing `textContent` rather than `innerHTML` for dynamic user content guarantees immunity from Cross-Site Scripting (XSS) vectors.
+
+2. **Relational Data Modeling vs. NoSQL Trade-offs at Scale:**  
+   Designing the schema for 1 million users demonstrated why relational databases (PostgreSQL) excel for structured, tag-driven applications. Modeling tags via an associative join table (`note_tags`) eliminates data duplication and enables instantaneous tag renames in $O(1)$ time, whereas document databases would demand sweeping updates across millions of nested documents. Composite indexing (`idx_notes_user_created`) optimizes the primary read path to $O(\log N)$ seeks without memory-heavy sorts.
+
+3. **High-Availability System Architecture and Decoupling:**  
+   Architecting for high availability requires decoupling stateless compute from stateful persistence. By placing stateless application nodes behind a load balancer and separating read traffic to PostgreSQL replicas while caching hot user data in a Redis cluster, we shield the primary write database from overload. Incorporating an asynchronous message queue allows heavy computational tasks (like search indexing and notifications) to run out-of-band, preserving sub-50ms API response times.
