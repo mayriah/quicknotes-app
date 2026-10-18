@@ -204,8 +204,113 @@ async function loadNotes() {
   }
 }
 
+/**
+ * Task 2 - POST: Create a new note
+ * Validates title (required, max 100 chars), sends POST request,
+ * disables submit button, clears form on success, and prepends note to list.
+ *
+ * @param {Event} e - Form submit event
+ */
+async function handleCreateNote(e) {
+  e.preventDefault();
+
+  const title = titleInput.value.trim();
+  const body = bodyInput.value.trim();
+
+  // Reset visual error state on title input
+  titleInput.classList.remove('input-invalid');
+
+  // Validation: Title is required
+  if (!title) {
+    titleInput.classList.add('input-invalid');
+    titleInput.focus();
+    setStatus('Validation error: Note title is required.', 'error');
+    return;
+  }
+
+  // Validation: Max 100 characters
+  if (title.length > 100) {
+    titleInput.classList.add('input-invalid');
+    titleInput.focus();
+    setStatus(`Validation error: Title exceeds 100 characters (currently ${title.length}).`, 'error');
+    return;
+  }
+
+  // Disable submit button during request
+  submitBtn.disabled = true;
+  setStatus('Creating note...', 'loading');
+
+  try {
+    const payload = {
+      title,
+      body,
+      userId: 1,
+    };
+
+    const { data, status } = await request(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    // Construct the new note object (use server returned id or fallback)
+    const newNote = {
+      id: data.id || Date.now(),
+      title: data.title || title,
+      body: data.body || body,
+      userId: data.userId || 1,
+    };
+
+    // If empty-state was currently displayed, clear it
+    if (notes.length === 0) {
+      notesList.textContent = '';
+    }
+
+    // Add returned note to the top of the collection & DOM
+    notes.unshift(newNote);
+    const noteEl = createNoteElement(newNote);
+    noteEl.classList.add('newly-created');
+    notesList.prepend(noteEl);
+    updateNotesCounter();
+
+    // Show status code and new id
+    setStatus(`Note created (status ${status}, id ${newNote.id}).`, 'success');
+
+    // Clear the form afterwards
+    noteForm.reset();
+    if (charCounter) {
+      charCounter.textContent = '0 / 100';
+      charCounter.className = 'char-counter';
+    }
+  } catch (error) {
+    console.error('Failed to create note:', error);
+    setStatus(`Error creating note: ${error.message || 'Server rejected the request.'}`, 'error');
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+/**
+ * Handles character count display for the title input
+ */
+function handleTitleInput() {
+  const currentLength = titleInput.value.length;
+  if (!charCounter) return;
+
+  charCounter.textContent = `${currentLength} / 100`;
+
+  charCounter.classList.remove('warning', 'limit');
+  if (currentLength >= 100) {
+    charCounter.classList.add('limit');
+  } else if (currentLength >= 80) {
+    charCounter.classList.add('warning');
+  }
+}
+
 // Event Listeners
 loadBtn.addEventListener('click', loadNotes);
+noteForm.addEventListener('submit', handleCreateNote);
+titleInput.addEventListener('input', handleTitleInput);
 
 // Initialize with empty state
 renderEmptyState();
+
