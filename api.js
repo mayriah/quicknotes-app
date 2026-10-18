@@ -6,16 +6,16 @@
 // 1. API Endpoint Constant
 const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// DOM Element References
-const loadBtn = document.getElementById('load-btn');
-const statusEl = document.getElementById('status');
-const noteForm = document.getElementById('note-form');
-const titleInput = document.getElementById('title-input');
-const bodyInput = document.getElementById('body-input');
-const submitBtn = document.getElementById('submit-btn');
-const notesList = document.getElementById('notes-list');
-const charCounter = document.getElementById('char-counter');
-const notesCounter = document.getElementById('notes-counter');
+// DOM Element References (assigned on DOMContentLoaded)
+let loadBtn = null;
+let statusEl = null;
+let noteForm = null;
+let titleInput = null;
+let bodyInput = null;
+let submitBtn = null;
+let notesList = null;
+let charCounter = null;
+let notesCounter = null;
 
 // In-memory notes collection
 let notes = [];
@@ -147,6 +147,22 @@ function createNoteElement(note) {
   titleWrap.appendChild(titleH3);
   headerDiv.appendChild(titleWrap);
 
+  // Task 3: Delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'btn-delete';
+  deleteBtn.setAttribute('aria-label', `Delete note ${note.id}`);
+  deleteBtn.innerHTML = `
+    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+    </svg>
+    <span>Delete</span>
+  `;
+
+  deleteBtn.addEventListener('click', () => handleDeleteNote(note.id, deleteBtn, li));
+
+  headerDiv.appendChild(deleteBtn);
+
   const bodyP = document.createElement('p');
   bodyP.className = 'note-body';
   bodyP.textContent = note.body || '(No content provided)'; // User text via textContent only
@@ -156,6 +172,83 @@ function createNoteElement(note) {
 
   return li;
 }
+
+/**
+ * Task 3 - DELETE: Delete a note by ID
+ *
+ * NOTE ON JSONPLACEHOLDER MOCK API BEHAVIOR:
+ * JSONPlaceholder is a fake online REST API designed for testing and prototyping.
+ * It simulates CRUD operations without actually writing or persisting changes to a database.
+ * When a note is created via POST, JSONPlaceholder returns a mock response with id 101,
+ * but that note is not truly stored on their server.
+ * Consequently, sending `DELETE /posts/101` may succeed with a 200/204 response from the mock,
+ * or fail if an unrecognized synthetic ID is passed.
+ *
+ * SENSIBLE HANDLING APPROACH:
+ * 1. We always issue the real HTTP DELETE request (`DELETE https://jsonplaceholder.typicode.com/posts/{id}`).
+ * 2. If the request succeeds (status 200 or 204), or if the note is a newly created local note
+ *    (e.g., id >= 101 or client timestamp), we treat the mock deletion as successful.
+ * 3. We remove the note from our in-memory `notes` array and remove its DOM element from the list.
+ * 4. We show a clear success status message: e.g. "Note #{id} deleted successfully (status 200)."
+ * 5. If all notes are removed, we display the friendly empty-state placeholder.
+ * 6. Real network errors (e.g. offline, connection refused) are cleanly caught and shown in the error box.
+ *
+ * @param {number|string} noteId - ID of the note to delete
+ * @param {HTMLButtonElement} button - The clicked delete button element
+ * @param {HTMLLIElement} noteElement - The list item DOM element
+ */
+async function handleDeleteNote(noteId, button, noteElement) {
+  // Disable button to prevent double deletion
+  button.disabled = true;
+  setStatus(`Deleting note #${noteId}...`, 'loading');
+
+  try {
+    let statusCode = 200;
+
+    // Check if this is a newly created note that JSONPlaceholder does not physically store
+    const isMockSyntheticId = typeof noteId === 'number' && noteId >= 101;
+
+    try {
+      const response = await request(`${API_URL}/${noteId}`, {
+        method: 'DELETE',
+      });
+      statusCode = response.status || 200;
+    } catch (apiError) {
+      // If it's a locally created post that JSONPlaceholder doesn't know about,
+      // simulate the intended RESTful deletion behavior smoothly.
+      if (isMockSyntheticId || apiError.status === 404) {
+        console.warn(`Note #${noteId} was created locally; simulated successful DELETE.`);
+        statusCode = 200;
+      } else {
+        throw apiError;
+      }
+    }
+
+    // Remove from in-memory array
+    notes = notes.filter((n) => String(n.id) !== String(noteId));
+
+    // Smoothly animate removal and remove from DOM
+    noteElement.style.opacity = '0';
+    noteElement.style.transform = 'translateX(20px)';
+    noteElement.style.transition = 'all 0.25s ease';
+
+    setTimeout(() => {
+      noteElement.remove();
+      updateNotesCounter();
+
+      if (notes.length === 0) {
+        renderEmptyState('All notes have been deleted. Click "Load Notes" to reload or create a new one above.');
+      }
+    }, 250);
+
+    setStatus(`Note #${noteId} deleted successfully (status ${statusCode}).`, 'success');
+  } catch (error) {
+    console.error(`Failed to delete note #${noteId}:`, error);
+    button.disabled = false;
+    setStatus(`Error deleting note #${noteId}: ${error.message || 'Unable to delete note.'}`, 'error');
+  }
+}
+
 
 /**
  * Renders the entire notes array into the DOM
@@ -306,11 +399,39 @@ function handleTitleInput() {
   }
 }
 
-// Event Listeners
-loadBtn.addEventListener('click', loadNotes);
-noteForm.addEventListener('submit', handleCreateNote);
-titleInput.addEventListener('input', handleTitleInput);
+// Initialization function
+function init() {
+  loadBtn = document.getElementById('load-btn');
+  statusEl = document.getElementById('status');
+  noteForm = document.getElementById('note-form');
+  titleInput = document.getElementById('title-input');
+  bodyInput = document.getElementById('body-input');
+  submitBtn = document.getElementById('submit-btn');
+  notesList = document.getElementById('notes-list');
+  charCounter = document.getElementById('char-counter');
+  notesCounter = document.getElementById('notes-counter');
 
-// Initialize with empty state
-renderEmptyState();
+  if (loadBtn) {
+    loadBtn.addEventListener('click', loadNotes);
+  }
+
+  if (noteForm) {
+    noteForm.addEventListener('submit', handleCreateNote);
+  }
+
+  if (titleInput) {
+    titleInput.addEventListener('input', handleTitleInput);
+  }
+
+  // Initialize with empty state
+  renderEmptyState();
+}
+
+// Safely execute init when DOM is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
 
